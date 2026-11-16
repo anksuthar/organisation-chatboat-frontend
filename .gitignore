@@ -13,6 +13,12 @@
 # testing
 /coverage
 
+# playwright output (traces/screenshots can contain cookies & tokens)
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
 # next.js
 /.next/
 /out/
@@ -23,6 +29,13 @@
 # misc
 .DS_Store
 *.pem
+*.key
+*.p12
+*.pfx
+*.crt
+id_rsa*
+credentials*.json
+service-account*.json
 
 # debug
 npm-debug.log*
@@ -30,8 +43,16 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# env files — real secrets never committed; only *.example templates are shared
 .env*
+!.env*.example
+
+# local editor / agent settings
+.claude/settings.local.json
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.log
 
 # vercel
 .vercel
