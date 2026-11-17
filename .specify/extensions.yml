@@ -3,6 +3,15 @@ installed:
 settings:
   auto_execute_hooks: true
 hooks:
+  before_specify:
+  - extension: pre-spec-grill
+    command: pre-spec-grill
+    enabled: true
+    optional: false
+    priority: 5
+    prompt: Grill the feature before writing the spec?
+    description: Interview the user and update GLOSSARY.md before specification
+    condition: null
   after_specify:
   - extension: agent-context
     command: speckit.agent-context.update

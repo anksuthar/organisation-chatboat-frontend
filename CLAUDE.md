@@ -68,3 +68,13 @@ calls the backend must document its endpoints in the feature's `contracts/`.
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan
 <!-- SPECKIT END -->
+
+## Agent skills
+
+### Issue tracker
+
+Local markdown: tickets live under `.scratch/<NNN-feature>/issues/`; specs stay in Spec Kit's `specs/`. See `docs/agents/issue-tracker.md`.
+
+### Domain docs
+
+Single-context: one root `GLOSSARY.md` plus `docs/adr/`, both created lazily. See `docs/agents/domain.md`.
