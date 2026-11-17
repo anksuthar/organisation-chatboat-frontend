@@ -14,6 +14,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { QueryError } from "@/components/shared/query-error";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -26,7 +27,7 @@ import type { ProductItem } from "@/types/product";
 export function ProductTable() {
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const { data: categories } = useProductCategories();
-  const { data: products, isLoading } = useProducts({
+  const { data: products, isLoading, isError, error, refetch } = useProducts({
     categoryId: categoryFilter === "all" ? undefined : Number(categoryFilter),
   });
   const deleteProduct = useDeleteProduct();
@@ -60,6 +61,9 @@ export function ProductTable() {
         </div>
       </div>
 
+      {isError ? (
+        <QueryError error={error} onRetry={() => refetch()} title="Couldn't load products" />
+      ) : (
       <div className="rounded-lg border">
         <Table>
           <TableHeader>
@@ -126,6 +130,7 @@ export function ProductTable() {
           </TableBody>
         </Table>
       </div>
+      )}
 
       <AlertDialog open={Boolean(deletingProduct)} onOpenChange={(open) => !open && setDeletingProduct(null)}>
         <AlertDialogContent>

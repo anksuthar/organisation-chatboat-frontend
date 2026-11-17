@@ -8,6 +8,16 @@ Next.js 15 (App Router, TypeScript) frontend for the Enterprise AI Knowledge Bas
 Backend is the sibling `../organisation-chatboat-backend` repo (FastAPI, has its own CLAUDE.md). See `README.md` here
 for full architecture — don't duplicate that here.
 
+## Folder access boundary (IMPORTANT)
+
+Only read, search, or modify files inside these two folders:
+- `organisation-chatboat-frontend` (this repo)
+- `../organisation-chatboat-backend`
+
+Do NOT access any other folder (other projects in `Workspace/`, home-directory config, etc.)
+without asking the user first and getting explicit permission — even just to "look at how
+another project does it". Other projects in the workspace are unrelated to this one.
+
 ## Commands
 
 ```bash
@@ -20,6 +30,13 @@ npm run lint                         # ESLint
 npm run test:e2e                     # Playwright — mocked backend, no live FastAPI needed
 npx playwright test tests/e2e/chat.spec.ts   # single file
 ```
+
+## Spec-driven workflow (GitHub Spec Kit)
+
+New features follow Spec Kit: `/speckit-specify` → `/speckit-clarify` → `/speckit-plan` →
+`/speckit-tasks` → `/speckit-analyze` → `/speckit-implement`. Specs live in `specs/NNN-name/`;
+project rules are in `.specify/memory/constitution.md` — read it before planning. Anything that
+calls the backend must document its endpoints in the feature's `contracts/`.
 
 ## Known environment gotchas
 
@@ -46,3 +63,8 @@ npx playwright test tests/e2e/chat.spec.ts   # single file
   else on the page (this bit the "Processing" status badge test, which also matched a toast
   containing "processing started", and a table-cell accessible-name test where the actions
   cell's concatenated aria-labels contained the target name as a substring).
+
+<!-- SPECKIT START -->
+For additional context about technologies to be used, project structure,
+shell commands, and other important information, read the current plan
+<!-- SPECKIT END -->

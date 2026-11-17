@@ -24,11 +24,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { CategoryFormDialog } from "@/components/categories/category-form-dialog";
+import { QueryError } from "@/components/shared/query-error";
 import { useCategories, useDeleteCategory } from "@/hooks/use-categories";
 import type { Category } from "@/types/category";
 
 export function CategoryTable() {
-  const { data: categories, isLoading } = useCategories();
+  const categoriesQuery = useCategories();
+  const { data: categories, isLoading, isError } = categoriesQuery;
   const deleteCategory = useDeleteCategory();
 
   const [formOpen, setFormOpen] = useState(false);
@@ -55,6 +57,8 @@ export function CategoryTable() {
         </Button>
       </div>
 
+      {isError && <QueryError error={categoriesQuery.error} onRetry={() => categoriesQuery.refetch()} />}
+
       <div className="rounded-lg border">
         <Table>
           <TableHeader>
@@ -74,7 +78,7 @@ export function CategoryTable() {
                 </TableRow>
               ))}
 
-            {!isLoading && categories?.length === 0 && (
+            {!isLoading && !isError && categories?.length === 0 && (
               <TableRow>
                 <TableCell colSpan={3} className="py-8 text-center text-muted-foreground">
                   No categories yet. Create one to get started.

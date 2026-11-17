@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
+import { QueryError } from "@/components/shared/query-error";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -24,7 +25,7 @@ const shippingSchema = z.object({
 type ShippingFormValues = z.infer<typeof shippingSchema>;
 
 export function ShippingDetailsForm() {
-  const { data: profile, isLoading } = useProfile();
+  const { data: profile, isLoading, error, refetch } = useProfile();
   const updateProfile = useUpdateProfile();
 
   const form = useForm<ShippingFormValues>({
@@ -53,14 +54,18 @@ export function ShippingDetailsForm() {
   }, [profile, form]);
 
   async function onSubmit(values: ShippingFormValues) {
-    await updateProfile.mutateAsync({
-      phone: values.phone,
-      address_line1: values.addressLine1,
-      address_line2: values.addressLine2,
-      city: values.city,
-      postal_code: values.postalCode,
-      country: values.country,
-    });
+    try {
+      await updateProfile.mutateAsync({
+        phone: values.phone,
+        address_line1: values.addressLine1,
+        address_line2: values.addressLine2,
+        city: values.city,
+        postal_code: values.postalCode,
+        country: values.country,
+      });
+    } catch {
+      // useUpdateProfile already toasts the error; keep the form values for a retry.
+    }
   }
 
   return (
@@ -71,6 +76,10 @@ export function ShippingDetailsForm() {
       <CardContent>
         {isLoading ? (
           <Skeleton className="h-48 w-full" />
+        ) : !profile ? (
+          // Never render the form without loaded data — saving it would overwrite the
+          // stored details with empty strings.
+          <QueryError error={error} onRetry={() => refetch()} title="Couldn't load your details" />
         ) : (
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">

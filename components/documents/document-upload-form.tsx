@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { FileText, UploadCloud, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
-import { useDropzone } from "react-dropzone";
+import { ErrorCode, useDropzone, type FileRejection } from "react-dropzone";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -30,11 +30,22 @@ const uploadSchema = z.object({
 
 type UploadFormValues = z.infer<typeof uploadSchema>;
 
+const MAX_FILE_SIZE = 20 * 1024 * 1024;
+
+function rejectionMessage(rejections: FileRejection[]): string {
+  const codes = rejections.flatMap((rejection) => rejection.errors.map((error) => error.code));
+  if (codes.includes(ErrorCode.TooManyFiles)) return "Drop a single PDF file.";
+  if (codes.includes(ErrorCode.FileInvalidType)) return "Only PDF files are allowed.";
+  if (codes.includes(ErrorCode.FileTooLarge)) return "File is larger than the 20MB limit.";
+  return rejections[0]?.errors[0]?.message ?? "This file can't be uploaded.";
+}
+
 export function DocumentUploadForm() {
   const router = useRouter();
   const { data: categories } = useCategories();
   const upload = useUploadDocument();
   const [file, setFile] = useState<File | null>(null);
+  const [dropError, setDropError] = useState<string | null>(null);
 
   const form = useForm<UploadFormValues>({
     resolver: zodResolver(uploadSchema),
@@ -42,9 +53,14 @@ export function DocumentUploadForm() {
   });
 
   const onDrop = useCallback(
-    (acceptedFiles: File[]) => {
+    (acceptedFiles: File[], fileRejections: FileRejection[]) => {
+      if (fileRejections.length > 0) {
+        setDropError(rejectionMessage(fileRejections));
+        return;
+      }
       const dropped = acceptedFiles[0];
       if (!dropped) return;
+      setDropError(null);
       setFile(dropped);
       if (!form.getValues("title")) {
         form.setValue("title", dropped.name.replace(/\.pdf$/i, ""));
@@ -57,14 +73,17 @@ export function DocumentUploadForm() {
     onDrop,
     accept: { "application/pdf": [".pdf"] },
     maxFiles: 1,
+    maxSize: MAX_FILE_SIZE,
   });
 
   async function onSubmit(values: UploadFormValues) {
-    if (!file) {
-      form.setError("title", { message: "Select a PDF file first" });
-      return;
+    // Submit is disabled until a file is selected; this only narrows the type.
+    if (!file) return;
+    try {
+      await upload.mutateAsync({ file, title: values.title, categoryId: Number(values.categoryId) });
+    } catch {
+      return; // toast shown by hook; stay on the upload page
     }
-    await upload.mutateAsync({ file, title: values.title, categoryId: Number(values.categoryId) });
     router.push("/admin/documents");
   }
 
@@ -107,6 +126,11 @@ export function DocumentUploadForm() {
           </>
         )}
       </div>
+      {dropError && (
+        <p role="alert" className="-mt-4 text-sm text-destructive">
+          {dropError}
+        </p>
+      )}
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -130,7 +154,7 @@ export function DocumentUploadForm() {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Category</FormLabel>
-                <Select value={field.value} onValueChange={field.onChange}>
+                <Select value={field.value} onValueChange={(value) => field.onChange(value ?? "")}>
                   <FormControl>
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select a category" />

@@ -3,6 +3,7 @@
 import { Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
+import { QueryError } from "@/components/shared/query-error";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -12,14 +13,18 @@ import { useCheckout } from "@/hooks/use-orders";
 
 export function CartView() {
   const router = useRouter();
-  const { data: cart, isLoading } = useCart();
+  const { data: cart, isLoading, isError, error, refetch } = useCart();
   const updateItem = useUpdateCartItem();
   const removeItem = useRemoveCartItem();
   const checkout = useCheckout();
 
   async function handleCheckout() {
-    const order = await checkout.mutateAsync();
-    router.push(`/orders/${order.id}`);
+    try {
+      const order = await checkout.mutateAsync();
+      router.push(`/orders/${order.id}`);
+    } catch {
+      // Error toast is shown by the mutation hook; the cart stays as-is.
+    }
   }
 
   if (isLoading) {
@@ -32,7 +37,9 @@ export function CartView() {
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold">Cart</h1>
 
-      {items.length === 0 ? (
+      {isError ? (
+        <QueryError error={error} onRetry={() => refetch()} title="Couldn't load your cart" />
+      ) : items.length === 0 ? (
         <p className="text-muted-foreground">Your cart is empty.</p>
       ) : (
         <>
@@ -61,9 +68,20 @@ export function CartView() {
                         defaultValue={item.quantity}
                         disabled={!item.product_id}
                         onBlur={(e) => {
-                          const quantity = Math.max(1, Number(e.target.value));
+                          const input = e.currentTarget;
+                          const quantity = Math.max(1, Math.floor(Number(input.value)) || 1);
+                          input.value = String(quantity);
                           if (quantity !== item.quantity) {
-                            updateItem.mutate({ itemId: item.id, input: { quantity } });
+                            updateItem.mutate(
+                              { itemId: item.id, input: { quantity } },
+                              {
+                                // Input is uncontrolled: on failure, snap back to the server value
+                                // (the hook shows the error toast).
+                                onError: () => {
+                                  input.value = String(item.quantity);
+                                },
+                              },
+                            );
                           }
                         }}
                         className="w-20"

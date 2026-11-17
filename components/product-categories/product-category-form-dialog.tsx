@@ -45,12 +45,16 @@ export function ProductCategoryFormDialog({
   }, [open, category, form]);
 
   async function onSubmit(values: ProductCategoryFormValues) {
-    if (isEditing && category) {
-      await updateCategory.mutateAsync({ id: category.id, input: values });
-    } else {
-      await createCategory.mutateAsync(values);
+    try {
+      if (isEditing && category) {
+        await updateCategory.mutateAsync({ id: category.id, input: values });
+      } else {
+        await createCategory.mutateAsync(values);
+      }
+      onOpenChange(false);
+    } catch {
+      // Error toast is shown by the mutation hook; keep the dialog open for correction.
     }
-    onOpenChange(false);
   }
 
   const isSubmitting = createCategory.isPending || updateCategory.isPending;

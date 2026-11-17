@@ -24,7 +24,9 @@ function hasInFlightDocument(documents: DocumentItem[] | undefined): boolean {
 
 export function useDocuments(categoryId?: number) {
   return useQuery({
-    queryKey: [...DOCUMENTS_KEY, categoryId ?? "all"],
+    // "list"/"detail" segments keep list and detail entries apart — without them a category id
+    // equal to a document id shared one cache entry (array vs object → crash).
+    queryKey: [...DOCUMENTS_KEY, "list", categoryId ?? "all"],
     queryFn: () => listDocuments(categoryId),
     refetchInterval: (query) => (hasInFlightDocument(query.state.data) ? IN_PROGRESS_REFETCH_MS : false),
   });
@@ -32,7 +34,8 @@ export function useDocuments(categoryId?: number) {
 
 export function useDocument(id: number) {
   return useQuery({
-    queryKey: [...DOCUMENTS_KEY, id],
+    queryKey: [...DOCUMENTS_KEY, "detail", id],
+    enabled: Number.isFinite(id),
     queryFn: () => getDocument(id),
     refetchInterval: (query) => {
       const status = query.state.data?.status;

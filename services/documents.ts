@@ -1,6 +1,4 @@
-import axios, { type AxiosProgressEvent } from "axios";
-
-import { apiFetch } from "@/services/api-client";
+import { apiFetch, apiUpload } from "@/services/api-client";
 import type { DocumentDetail, DocumentItem } from "@/types/document";
 
 export function listDocuments(categoryId?: number): Promise<DocumentItem[]> {
@@ -28,15 +26,7 @@ export async function uploadDocument({
   formData.append("category_id", String(categoryId));
   formData.append("file", file);
 
-  const { data } = await axios.post<DocumentItem>("/api/backend/documents/upload", formData, {
-    onUploadProgress: (event: AxiosProgressEvent) => {
-      if (onProgress && event.total) {
-        onProgress(Math.round((event.loaded / event.total) * 100));
-      }
-    },
-  });
-
-  return data;
+  return apiUpload<DocumentItem>("documents/upload", formData, { onProgress });
 }
 
 export function replaceDocument(id: number, file: File): Promise<DocumentItem> {

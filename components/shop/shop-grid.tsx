@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { QueryError } from "@/components/shared/query-error";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -14,7 +15,7 @@ export function ShopGrid() {
   const [query, setQuery] = useState("");
   const [search, setSearch] = useState("");
   const { data: categories } = useProductCategories();
-  const { data: products, isLoading } = useProducts({
+  const { data: products, isLoading, isError, error, refetch } = useProducts({
     categoryId: categoryFilter === "all" ? undefined : Number(categoryFilter),
     q: search || undefined,
   });
@@ -55,7 +56,9 @@ export function ShopGrid() {
         </div>
       </div>
 
-      {isLoading && (
+      {isError && <QueryError error={error} onRetry={() => refetch()} title="Couldn't load products" />}
+
+      {!isError && isLoading && (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
           {Array.from({ length: 8 }).map((_, index) => (
             <Skeleton key={index} className="aspect-[3/4] w-full" />
@@ -63,11 +66,11 @@ export function ShopGrid() {
         </div>
       )}
 
-      {!isLoading && products?.length === 0 && (
+      {!isError && !isLoading && products?.length === 0 && (
         <p className="py-12 text-center text-muted-foreground">No products found.</p>
       )}
 
-      {!isLoading && products && products.length > 0 && (
+      {!isError && !isLoading && products && products.length > 0 && (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
           {products.map((product) => (
             <ProductCard key={product.id} product={product} />

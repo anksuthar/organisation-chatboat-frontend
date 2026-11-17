@@ -51,10 +51,14 @@ export function CategoryFormDialog({
   }, [open, category, form]);
 
   async function onSubmit(values: CategoryFormValues) {
-    if (isEditing && category) {
-      await updateCategory.mutateAsync({ id: category.id, input: values });
-    } else {
-      await createCategory.mutateAsync(values);
+    try {
+      if (isEditing && category) {
+        await updateCategory.mutateAsync({ id: category.id, input: values });
+      } else {
+        await createCategory.mutateAsync(values);
+      }
+    } catch {
+      return; // toast shown by hook; keep the dialog open
     }
     onOpenChange(false);
   }

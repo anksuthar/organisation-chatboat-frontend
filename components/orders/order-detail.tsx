@@ -4,6 +4,7 @@ import { formatDistanceToNow } from "date-fns";
 import { MessageCircleWarning } from "lucide-react";
 import Link from "next/link";
 
+import { QueryError } from "@/components/shared/query-error";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -12,7 +13,11 @@ import { OrderStatusBadge } from "@/components/orders/order-status-badge";
 import { useOrder } from "@/hooks/use-orders";
 
 export function OrderDetail({ orderId }: { orderId: number }) {
-  const { data: order, isLoading } = useOrder(orderId);
+  const { data: order, isLoading, isError, error, refetch } = useOrder(orderId);
+
+  if (isError) {
+    return <QueryError error={error} onRetry={() => refetch()} notFoundLabel="Order" className="max-w-xl" />;
+  }
 
   if (isLoading || !order) {
     return <Skeleton className="h-64 w-full" />;

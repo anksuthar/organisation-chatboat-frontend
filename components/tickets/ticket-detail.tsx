@@ -3,13 +3,18 @@
 import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
 
+import { QueryError } from "@/components/shared/query-error";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TicketStatusBadge } from "@/components/tickets/ticket-status-badge";
 import { useTicket } from "@/hooks/use-tickets";
 
 export function TicketDetail({ ticketId }: { ticketId: number }) {
-  const { data: ticket, isLoading } = useTicket(ticketId);
+  const { data: ticket, isLoading, isError, error, refetch } = useTicket(ticketId);
+
+  if (isError) {
+    return <QueryError error={error} onRetry={() => refetch()} notFoundLabel="Ticket" className="max-w-xl" />;
+  }
 
   if (isLoading || !ticket) {
     return <Skeleton className="h-48 w-full" />;

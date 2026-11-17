@@ -2,7 +2,8 @@
 
 import { Trash2 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { Suspense, useEffect, useRef } from "react";
+import { toast } from "sonner";
 
 import {
   AlertDialog,
@@ -16,16 +17,33 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { QueryError } from "@/components/shared/query-error";
 import { ChatInput } from "@/components/chat/chat-input";
 import { ChatMessageBubble } from "@/components/chat/chat-message-bubble";
 import { SuggestedQuestions } from "@/components/chat/suggested-questions";
 import { useChatHistory, useClearChatHistory } from "@/hooks/use-chat-history";
 import { useChatStream } from "@/hooks/use-chat-stream";
+import { getErrorMessage } from "@/services/api-client";
 
 export default function ChatPage() {
+  // useSearchParams() needs a Suspense boundary for static prerendering in Next 15.
+  return (
+    <Suspense fallback={null}>
+      <ChatPageContent />
+    </Suspense>
+  );
+}
+
+function ChatPageContent() {
   const searchParams = useSearchParams();
   const prefill = searchParams.get("prefill") ?? "";
-  const { data: history, isLoading: historyLoading } = useChatHistory();
+  const {
+    data: history,
+    isLoading: historyLoading,
+    isError: historyError,
+    error: historyErrorValue,
+    refetch: refetchHistory,
+  } = useChatHistory();
   const { messages, isStreaming, sendMessage, loadHistory, clearMessages } = useChatStream();
   const clearHistory = useClearChatHistory();
   const hasHydrated = useRef(false);
@@ -43,8 +61,13 @@ export default function ChatPage() {
   }, [messages]);
 
   async function handleClear() {
-    await clearHistory.mutateAsync();
-    clearMessages();
+    try {
+      await clearHistory.mutateAsync();
+      clearMessages();
+    } catch (error) {
+      // Keep the local thread — the server-side history was not deleted.
+      toast.error(`Couldn't clear conversation: ${getErrorMessage(error)}`);
+    }
   }
 
   return (
@@ -70,6 +93,15 @@ export default function ChatPage() {
           </AlertDialogContent>
         </AlertDialog>
       </div>
+
+      {historyError && (
+        <QueryError
+          error={historyErrorValue}
+          onRetry={() => refetchHistory()}
+          title="Couldn't load your conversation history"
+          className="mx-4 mt-4 w-auto"
+        />
+      )}
 
       <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto p-4">
         {!historyLoading && messages.length === 0 && (

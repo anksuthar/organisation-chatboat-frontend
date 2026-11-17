@@ -16,8 +16,16 @@ import type { ProductItem } from "@/types/product";
 
 const editSchema = z.object({
   name: z.string().min(1, "Name is required").max(255),
-  price: z.string().min(1, "Price is required"),
-  stockQuantity: z.string().min(1, "Stock quantity is required"),
+  price: z
+    .string()
+    .trim()
+    .min(1, "Price is required")
+    .regex(/^\d+(\.\d{1,2})?$/, "Price must be a non-negative number with at most 2 decimal places"),
+  stockQuantity: z
+    .string()
+    .trim()
+    .min(1, "Stock quantity is required")
+    .regex(/^\d+$/, "Stock quantity must be a non-negative whole number"),
   categoryId: z.string().optional(),
   isActive: z.enum(["true", "false"]),
 });
@@ -60,17 +68,21 @@ export function ProductEditDialog({
   }, [open, product, form]);
 
   async function onSubmit(values: EditFormValues) {
-    await updateProduct.mutateAsync({
-      id: product.id,
-      input: {
-        name: values.name,
-        price: values.price,
-        stock_quantity: Number(values.stockQuantity),
-        category_id: values.categoryId ? Number(values.categoryId) : undefined,
-        is_active: values.isActive === "true",
-      },
-    });
-    onOpenChange(false);
+    try {
+      await updateProduct.mutateAsync({
+        id: product.id,
+        input: {
+          name: values.name,
+          price: values.price,
+          stock_quantity: Number(values.stockQuantity),
+          category_id: values.categoryId ? Number(values.categoryId) : undefined,
+          is_active: values.isActive === "true",
+        },
+      });
+      onOpenChange(false);
+    } catch {
+      // Error toast is shown by the mutation hook; keep the dialog open for correction.
+    }
   }
 
   return (
@@ -128,7 +140,7 @@ export function ProductEditDialog({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Category</FormLabel>
-                  <Select value={field.value} onValueChange={field.onChange}>
+                  <Select value={field.value} onValueChange={(value) => field.onChange(value ?? "")}>
                     <FormControl>
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder="No category" />
@@ -152,7 +164,13 @@ export function ProductEditDialog({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Status</FormLabel>
-                  <Select value={field.value} onValueChange={field.onChange}>
+                  <Select
+                    value={field.value}
+                    onValueChange={(value) => {
+                      // Base UI can emit null; status is required, so keep the current value.
+                      if (value === "true" || value === "false") field.onChange(value);
+                    }}
+                  >
                     <FormControl>
                       <SelectTrigger className="w-full">
                         <SelectValue />

@@ -17,11 +17,12 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ProductCategoryFormDialog } from "@/components/product-categories/product-category-form-dialog";
+import { QueryError } from "@/components/shared/query-error";
 import { useDeleteProductCategory, useProductCategories } from "@/hooks/use-product-categories";
 import type { ProductCategory } from "@/types/product-category";
 
 export function ProductCategoryTable() {
-  const { data: categories, isLoading } = useProductCategories();
+  const { data: categories, isLoading, isError, error, refetch } = useProductCategories();
   const deleteCategory = useDeleteProductCategory();
 
   const [formOpen, setFormOpen] = useState(false);
@@ -48,6 +49,9 @@ export function ProductCategoryTable() {
         </Button>
       </div>
 
+      {isError ? (
+        <QueryError error={error} onRetry={() => refetch()} title="Couldn't load product categories" />
+      ) : (
       <div className="rounded-lg border">
         <Table>
           <TableHeader>
@@ -102,6 +106,7 @@ export function ProductCategoryTable() {
           </TableBody>
         </Table>
       </div>
+      )}
 
       <ProductCategoryFormDialog open={formOpen} onOpenChange={setFormOpen} category={editingCategory} />
 

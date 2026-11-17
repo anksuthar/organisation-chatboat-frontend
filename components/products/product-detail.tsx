@@ -14,6 +14,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { QueryError } from "@/components/shared/query-error";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,7 +26,7 @@ import { productImageUrl } from "@/services/products";
 
 export function ProductDetail({ productId }: { productId: number }) {
   const router = useRouter();
-  const { data: product, isLoading } = useProduct(productId);
+  const { data: product, isLoading, isError, error, refetch } = useProduct(productId);
   const { data: categories } = useProductCategories();
   const addImages = useAddProductImages();
   const removeImage = useRemoveProductImage();
@@ -33,6 +34,10 @@ export function ProductDetail({ productId }: { productId: number }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+
+  if (isError) {
+    return <QueryError error={error} onRetry={() => refetch()} notFoundLabel="Product" className="max-w-xl" />;
+  }
 
   if (isLoading || !product) {
     return <Skeleton className="h-64 w-full" />;
@@ -156,8 +161,12 @@ export function ProductDetail({ productId }: { productId: number }) {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={async () => {
-                await deleteProduct.mutateAsync(product.id);
-                router.push("/admin/products");
+                try {
+                  await deleteProduct.mutateAsync(product.id);
+                  router.push("/admin/products");
+                } catch {
+                  // Error toast is shown by the mutation hook.
+                }
               }}
             >
               Delete

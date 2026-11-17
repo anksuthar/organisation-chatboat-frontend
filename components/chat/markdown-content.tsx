@@ -1,15 +1,25 @@
 "use client";
 
 import { Check, Copy } from "lucide-react";
-import { useState } from "react";
+import { isValidElement, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 import { Button } from "@/components/ui/button";
 
+/** Plain text of a React node tree. react-markdown passes the `pre` renderer a
+ * `<code>` element (not a string), so `String(children)` would be "[object Object]". */
+function extractText(node: React.ReactNode): string {
+  if (node == null || typeof node === "boolean") return "";
+  if (typeof node === "string" || typeof node === "number") return String(node);
+  if (Array.isArray(node)) return node.map(extractText).join("");
+  if (isValidElement<{ children?: React.ReactNode }>(node)) return extractText(node.props.children);
+  return "";
+}
+
 function CodeBlock({ children }: { children?: React.ReactNode }) {
   const [copied, setCopied] = useState(false);
-  const text = typeof children === "string" ? children : String(children ?? "");
+  const text = extractText(children);
 
   async function handleCopy() {
     await navigator.clipboard.writeText(text.replace(/\n$/, ""));

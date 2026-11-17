@@ -24,14 +24,21 @@ async function proxy(request: NextRequest, path: string[]): Promise<Response> {
 
   const hasBody = !["GET", "HEAD"].includes(request.method);
 
-  const backendResponse = await fetch(targetUrl, {
-    method: request.method,
-    headers,
-    body: hasBody ? request.body : undefined,
-    // @ts-expect-error - undici requires `duplex` when streaming a request body
-    duplex: hasBody ? "half" : undefined,
-    cache: "no-store",
-  });
+  let backendResponse: Response;
+  try {
+    backendResponse = await fetch(targetUrl, {
+      method: request.method,
+      headers,
+      body: hasBody ? request.body : undefined,
+      // @ts-expect-error - undici requires `duplex` when streaming a request body
+      duplex: hasBody ? "half" : undefined,
+      cache: "no-store",
+    });
+  } catch {
+    // Backend down/unreachable — answer in the same `{ detail }` shape FastAPI uses
+    // so `apiFetch` surfaces a readable error instead of an HTML 500.
+    return Response.json({ detail: "Backend unavailable" }, { status: 502 });
+  }
 
   const responseHeaders = new Headers(backendResponse.headers);
   // Stale after passthrough — let the platform recompute framing for us.

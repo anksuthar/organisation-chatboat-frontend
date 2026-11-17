@@ -4,6 +4,7 @@ import { formatDistanceToNow } from "date-fns";
 import { Eye } from "lucide-react";
 import Link from "next/link";
 
+import { QueryError } from "@/components/shared/query-error";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -11,12 +12,15 @@ import { OrderStatusBadge } from "@/components/orders/order-status-badge";
 import { useOrders } from "@/hooks/use-orders";
 
 export function OrderTable() {
-  const { data: orders, isLoading } = useOrders();
+  const { data: orders, isLoading, isError, error, refetch } = useOrders();
 
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-semibold">My Orders</h1>
 
+      {isError ? (
+        <QueryError error={error} onRetry={() => refetch()} title="Couldn't load your orders" />
+      ) : (
       <div className="rounded-lg border">
         <Table>
           <TableHeader>
@@ -71,6 +75,7 @@ export function OrderTable() {
           </TableBody>
         </Table>
       </div>
+      )}
     </div>
   );
 }

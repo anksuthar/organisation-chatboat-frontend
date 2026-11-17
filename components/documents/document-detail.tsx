@@ -22,19 +22,27 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DocumentReplaceDialog } from "@/components/documents/document-replace-dialog";
 import { DocumentStatusBadge } from "@/components/documents/document-status-badge";
+import { QueryError } from "@/components/shared/query-error";
 import { useCategories } from "@/hooks/use-categories";
 import { useDeleteDocument, useDocument, useReprocessDocument } from "@/hooks/use-documents";
 
 export function DocumentDetail({ documentId }: { documentId: number }) {
   const router = useRouter();
-  const { data: document, isLoading } = useDocument(documentId);
+  const documentQuery = useDocument(documentId);
+  const { data: document, isError } = documentQuery;
   const { data: categories } = useCategories();
   const reprocessDocument = useReprocessDocument();
   const deleteDocument = useDeleteDocument();
   const [replaceOpen, setReplaceOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
 
-  if (isLoading || !document) {
+  if (isError && !document) {
+    return (
+      <QueryError error={documentQuery.error} onRetry={() => documentQuery.refetch()} notFoundLabel="Document" />
+    );
+  }
+
+  if (!document) {
     return <Skeleton className="h-64 w-full" />;
   }
 
@@ -147,12 +155,17 @@ export function DocumentDetail({ documentId }: { documentId: number }) {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
+              disabled={deleteDocument.isPending}
               onClick={async () => {
-                await deleteDocument.mutateAsync(document.id);
+                try {
+                  await deleteDocument.mutateAsync(document.id);
+                } catch {
+                  return; // toast shown by hook
+                }
                 router.push("/admin/documents");
               }}
             >
-              Delete
+              {deleteDocument.isPending ? "Deleting…" : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

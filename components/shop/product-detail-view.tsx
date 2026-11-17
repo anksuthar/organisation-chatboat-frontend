@@ -3,6 +3,7 @@
 import { ShoppingCart } from "lucide-react";
 import { useState } from "react";
 
+import { QueryError } from "@/components/shared/query-error";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,15 +13,23 @@ import { useProduct } from "@/hooks/use-products";
 import { productImageUrl } from "@/services/products";
 
 export function ProductDetailView({ productId }: { productId: number }) {
-  const { data: product, isLoading } = useProduct(productId);
+  const { data: product, isLoading, isError, error, refetch } = useProduct(productId);
   const addToCart = useAddCartItem();
   const [quantity, setQuantity] = useState(1);
+
+  if (isError) {
+    return <QueryError error={error} onRetry={() => refetch()} notFoundLabel="Product" className="max-w-xl" />;
+  }
 
   if (isLoading || !product) {
     return <Skeleton className="h-96 w-full" />;
   }
 
   const outOfStock = product.stock_quantity <= 0;
+  // Keep the requested quantity within 1..stock_quantity (the input's `max` attribute alone
+  // doesn't stop typed values).
+  const clampQuantity = (value: number) =>
+    Math.min(Math.max(1, product.stock_quantity), Math.max(1, Math.floor(value) || 1));
 
   return (
     <div className="grid gap-8 md:grid-cols-2">
@@ -64,13 +73,13 @@ export function ProductDetailView({ productId }: { productId: number }) {
             min={1}
             max={product.stock_quantity}
             value={quantity}
-            onChange={(e) => setQuantity(Math.max(1, Number(e.target.value)))}
+            onChange={(e) => setQuantity(clampQuantity(Number(e.target.value)))}
             className="w-20"
             disabled={outOfStock}
           />
           <Button
             disabled={outOfStock || addToCart.isPending}
-            onClick={() => addToCart.mutate({ product_id: product.id, quantity })}
+            onClick={() => addToCart.mutate({ product_id: product.id, quantity: clampQuantity(quantity) })}
           >
             <ShoppingCart />
             Add to cart

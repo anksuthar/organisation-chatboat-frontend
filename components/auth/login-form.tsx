@@ -1,6 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -22,6 +23,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 export function LoginForm({ requireRole }: { requireRole?: UserRole } = {}) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [serverError, setServerError] = useState<string | null>(null);
 
   const form = useForm<LoginFormValues>({
@@ -38,11 +40,13 @@ export function LoginForm({ requireRole }: { requireRole?: UserRole } = {}) {
         // The credentials were valid but this isn't the right portal for this
         // account — discard the session `login()` just set rather than send
         // someone into an area they have no access to.
-        await logout();
+        await logout().catch(() => {});
         setServerError(`This sign-in is for ${requireRole} accounts only.`);
         return;
       }
 
+      // Drop any user cached from a previous session so the shell refetches /api/auth/me.
+      queryClient.removeQueries({ queryKey: ["auth", "me"] });
       router.push(roleHomePath(role));
       router.refresh();
     } catch (error) {

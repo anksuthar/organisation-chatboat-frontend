@@ -122,6 +122,11 @@ export function useChatStream() {
           isStreaming: false,
         }));
       } finally {
+        // The stream can end (or abort) without a `done` event — never leave
+        // the bubble stuck in its streaming state.
+        updateMessage(assistantId, (message) =>
+          message.isStreaming ? { ...message, isStreaming: false } : message
+        );
         setIsStreaming(false);
         queryClient.invalidateQueries({ queryKey: CHAT_HISTORY_KEY });
       }

@@ -7,21 +7,41 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useCategories } from "@/hooks/use-categories";
 import { useDocuments } from "@/hooks/use-documents";
+import type { DocumentItem } from "@/types/document";
 
 export default function AdminDashboardPage() {
-  const { data: categories, isLoading: categoriesLoading } = useCategories();
-  const { data: documents, isLoading: documentsLoading } = useDocuments();
+  const { data: categories, isLoading: categoriesLoading, isError: categoriesError } = useCategories();
+  const { data: documents, isLoading: documentsLoading, isError: documentsError } = useDocuments();
 
-  const processedCount = documents?.filter((d) => d.status === "processed").length ?? 0;
-  const inFlightCount = documents?.filter((d) => d.status === "pending" || d.status === "processing").length ?? 0;
-  const failedCount = documents?.filter((d) => d.status === "failed").length ?? 0;
+  const countDocuments = (predicate: (d: DocumentItem) => boolean) => documents?.filter(predicate).length;
+
+  // "…" while loading, "—" when the query failed (never a misleading 0).
+  const display = (loading: boolean, error: boolean, value: number | undefined) =>
+    loading ? "…" : error || value === undefined ? "—" : value;
 
   const stats = [
-    { label: "Categories", value: categoriesLoading ? "…" : categories?.length ?? 0, icon: FolderKanban },
-    { label: "Processed documents", value: documentsLoading ? "…" : processedCount, icon: CheckCircle2 },
-    { label: "In progress", value: documentsLoading ? "…" : inFlightCount, icon: Clock },
-    { label: "Failed", value: documentsLoading ? "…" : failedCount, icon: FileX2 },
+    { label: "Categories", value: display(categoriesLoading, categoriesError, categories?.length), icon: FolderKanban },
+    {
+      label: "Processed documents",
+      value: display(documentsLoading, documentsError, countDocuments((d) => d.status === "processed")),
+      icon: CheckCircle2,
+    },
+    {
+      label: "In progress",
+      value: display(
+        documentsLoading,
+        documentsError,
+        countDocuments((d) => d.status === "pending" || d.status === "processing")
+      ),
+      icon: Clock,
+    },
+    {
+      label: "Failed",
+      value: display(documentsLoading, documentsError, countDocuments((d) => d.status === "failed")),
+      icon: FileX2,
+    },
   ];
+  const loadFailed = categoriesError || documentsError;
 
   return (
     <div className="space-y-6">
@@ -32,6 +52,12 @@ export default function AdminDashboardPage() {
           Upload document
         </Button>
       </div>
+
+      {loadFailed && (
+        <p role="alert" className="text-sm text-destructive">
+          Some counts couldn&apos;t be loaded. Refresh the page to try again.
+        </p>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => (

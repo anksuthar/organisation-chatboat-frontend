@@ -33,6 +33,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { DocumentStatusBadge } from "@/components/documents/document-status-badge";
+import { QueryError } from "@/components/shared/query-error";
 import { useCategories } from "@/hooks/use-categories";
 import { useDeleteDocument, useDocuments, useReprocessDocument } from "@/hooks/use-documents";
 import type { DocumentItem } from "@/types/document";
@@ -40,9 +41,8 @@ import type { DocumentItem } from "@/types/document";
 export function DocumentTable() {
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const { data: categories } = useCategories();
-  const { data: documents, isLoading } = useDocuments(
-    categoryFilter === "all" ? undefined : Number(categoryFilter)
-  );
+  const documentsQuery = useDocuments(categoryFilter === "all" ? undefined : Number(categoryFilter));
+  const { data: documents, isLoading, isError } = documentsQuery;
   const reprocessDocument = useReprocessDocument();
   const deleteDocument = useDeleteDocument();
   const [deletingDocument, setDeletingDocument] = useState<DocumentItem | null>(null);
@@ -75,6 +75,8 @@ export function DocumentTable() {
         </div>
       </div>
 
+      {isError && <QueryError error={documentsQuery.error} onRetry={() => documentsQuery.refetch()} />}
+
       <div className="rounded-lg border">
         <Table>
           <TableHeader>
@@ -97,7 +99,7 @@ export function DocumentTable() {
                 </TableRow>
               ))}
 
-            {!isLoading && documents?.length === 0 && (
+            {!isLoading && !isError && documents?.length === 0 && (
               <TableRow>
                 <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
                   No documents yet.

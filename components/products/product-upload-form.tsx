@@ -20,9 +20,17 @@ import { cn } from "@/lib/utils";
 const productSchema = z.object({
   name: z.string().min(1, "Name is required").max(255),
   description: z.string().max(2000).optional(),
-  price: z.string().min(1, "Price is required"),
+  price: z
+    .string()
+    .trim()
+    .min(1, "Price is required")
+    .regex(/^\d+(\.\d{1,2})?$/, "Price must be a non-negative number with at most 2 decimal places"),
   sku: z.string().min(1, "SKU is required").max(64),
-  stockQuantity: z.string().min(1, "Stock quantity is required"),
+  stockQuantity: z
+    .string()
+    .trim()
+    .min(1, "Stock quantity is required")
+    .regex(/^\d+$/, "Stock quantity must be a non-negative whole number"),
   categoryId: z.string().optional(),
 });
 
@@ -60,18 +68,22 @@ export function ProductUploadForm() {
   }
 
   async function onSubmit(values: ProductFormValues) {
-    await upload.mutateAsync({
-      input: {
-        name: values.name,
-        description: values.description,
-        price: values.price,
-        sku: values.sku,
-        stock_quantity: Number(values.stockQuantity),
-        category_id: values.categoryId ? Number(values.categoryId) : undefined,
-      },
-      images,
-    });
-    router.push("/admin/products");
+    try {
+      await upload.mutateAsync({
+        input: {
+          name: values.name,
+          description: values.description,
+          price: values.price,
+          sku: values.sku,
+          stock_quantity: Number(values.stockQuantity),
+          category_id: values.categoryId ? Number(values.categoryId) : undefined,
+        },
+        images,
+      });
+      router.push("/admin/products");
+    } catch {
+      // Error toast is shown by the mutation hook; stay on the form so the user can retry.
+    }
   }
 
   return (
@@ -182,7 +194,7 @@ export function ProductUploadForm() {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Category</FormLabel>
-                <Select value={field.value} onValueChange={field.onChange}>
+                <Select value={field.value} onValueChange={(value) => field.onChange(value ?? "")}>
                   <FormControl>
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="No category" />

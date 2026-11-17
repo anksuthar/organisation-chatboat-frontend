@@ -1,6 +1,4 @@
-import axios, { type AxiosProgressEvent } from "axios";
-
-import { apiFetch } from "@/services/api-client";
+import { apiFetch, apiUpload } from "@/services/api-client";
 import type { ProductCreateInput, ProductDetail, ProductImage, ProductItem, ProductUpdateInput } from "@/types/product";
 
 export function listProducts(params?: { categoryId?: number; q?: string }): Promise<ProductItem[]> {
@@ -39,15 +37,7 @@ export async function uploadProduct({
   if (input.category_id) formData.append("category_id", String(input.category_id));
   images.forEach((file) => formData.append("images", file));
 
-  const { data } = await axios.post<ProductItem>("/api/backend/products/upload", formData, {
-    onUploadProgress: (event: AxiosProgressEvent) => {
-      if (onProgress && event.total) {
-        onProgress(Math.round((event.loaded / event.total) * 100));
-      }
-    },
-  });
-
-  return data;
+  return apiUpload<ProductItem>("products/upload", formData, { onProgress });
 }
 
 export function updateProduct(id: number, input: ProductUpdateInput): Promise<ProductItem> {
